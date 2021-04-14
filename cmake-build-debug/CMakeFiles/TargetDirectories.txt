@@ -1,0 +1,3 @@
+C:/Users/Dmitry/CLionProjects/K1C_exam_task/cmake-build-debug/CMakeFiles/K1C_exam_task.dir
+C:/Users/Dmitry/CLionProjects/K1C_exam_task/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Dmitry/CLionProjects/K1C_exam_task/cmake-build-debug/CMakeFiles/rebuild_cache.dir
