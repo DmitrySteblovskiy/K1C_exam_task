@@ -5,7 +5,7 @@
 
 #include <lodepng.h>    // добавляем библиотеки для чтения .png файлов и работы с ними
 
-unsigned width, height, item_width;
+unsigned WIDTH, HEIGHT, ITEM_WIDTH;
 
 std::vector<unsigned char> ConvertImage(const char* filename) {
     // наш формат - можно легко расширить круг покрываемых задач (обрабатывая картинки любого типа):
@@ -14,7 +14,7 @@ std::vector<unsigned char> ConvertImage(const char* filename) {
 
     // load and decode
     unsigned error = lodepng::load_file(png, filename);
-    if(!error) error = lodepng::decode(image, width, height, png);
+    if(!error) error = lodepng::decode(image, WIDTH, HEIGHT, png);
 
     // if there's an error, display it
     if(error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
@@ -23,28 +23,28 @@ std::vector<unsigned char> ConvertImage(const char* filename) {
     return image;
 }
 
-class Field_Borders {    // объект класса содержит границы (пара верхних точек поля - левую и правую), которых нам
+class FieldBorders {    // объект класса содержит границы (пара верхних точек поля - левую и правую), которых нам
 public:                 // достаточно для определения основных характеристик поля (высоты клетки и т. д.)
     int x, y;
 
-    Field_Borders( int def_left = 0, int def_right = 0) {
+    FieldBorders( int def_left = 0, int def_right = 0) {
         x = def_left;
         y = def_right;
     }
 };
 
 // находим верхние две точки нашего поля (это концы вертикальных линий)
-std::pair<Field_Borders, Field_Borders> FindFieldBorders(std::vector<unsigned char>& image,
-                                                       std::pair<Field_Borders, Field_Borders> borders) {
+std::pair<FieldBorders, FieldBorders> FindFieldBorders(const std::vector<unsigned char>& image,
+                                                       std::pair<FieldBorders, FieldBorders> borders) {
     size_t borders_counter = 0;
-    item_width = 0;
+    ITEM_WIDTH = 0;
 
     for (size_t i = 0; i < image.size(); ++i) {     // ищем толщину объектов
 
         if (image[i] != 255) {
-            ++item_width;
+            ++ITEM_WIDTH;
         } else {
-            if (item_width) {
+            if (ITEM_WIDTH) {
                 break;
             }
         }
@@ -52,14 +52,14 @@ std::pair<Field_Borders, Field_Borders> FindFieldBorders(std::vector<unsigned ch
 
     for (size_t i = 0; i < image.size(); ++i) {
         if (image[i] != 255 && !borders_counter) {
-            borders.first.x = i % width;
-            borders.first.y = i / width;
+            borders.first.x = i % WIDTH;
+            borders.first.y = i / WIDTH;
             ++borders_counter;
         }
 
         if (image[i] != 255 && borders_counter == 1) {
-            borders.second.x = i % width;
-            borders.second.y = i / width;
+            borders.second.x = i % WIDTH;
+            borders.second.y = i / WIDTH;
             ++borders_counter;
         }
 
@@ -69,11 +69,11 @@ std::pair<Field_Borders, Field_Borders> FindFieldBorders(std::vector<unsigned ch
     }
 }
 
-std::vector<int> AnalyzeField(std::vector<unsigned char>& image, std::pair<Field_Borders, Field_Borders> borders) {
+std::vector<int> AnalyzeField(std::vector<unsigned char>& image, std::pair<FieldBorders, FieldBorders> borders) {
     std::vector<int> figures(9, 0);
     size_t cell_size = borders.first.x - borders.second.x;
 
-    Field_Borders iteration_beginning;
+    FieldBorders iteration_beginning;
     iteration_beginning.x = borders.first.x - cell_size;
     iteration_beginning.y = borders.first.y + cell_size / 2;
 
@@ -83,13 +83,13 @@ std::vector<int> AnalyzeField(std::vector<unsigned char>& image, std::pair<Field
         for (size_t j = 0; j < iteration_beginning.x + cell_size * 3; ++j) {
             size_t black_counter = 0;
 
-            if ((image[iteration_beginning.y * width + iteration_beginning.x + j] != 255) &&
-                    ((iteration_beginning.y * width + iteration_beginning.x + j) != (borders.first.x)) &&
-                    ((iteration_beginning.y * width + iteration_beginning.x + j) != (borders.second.x))) {
+            if ((image[iteration_beginning.y * WIDTH + iteration_beginning.x + j] != 255) &&
+                    ((iteration_beginning.y * WIDTH + iteration_beginning.x + j) != (borders.first.x)) &&
+                    ((iteration_beginning.y * WIDTH + iteration_beginning.x + j) != (borders.second.x))) {
                 ++black_counter;
-                j += item_width + 1;
+                j += ITEM_WIDTH + 1;
 
-                if (image[iteration_beginning.y * width + iteration_beginning.x + j] != 255) {
+                if (image[iteration_beginning.y * WIDTH + iteration_beginning.x + j] != 255) {
                     ++black_counter;
                     figures[curr_figure + i * 3] = static_cast<int>(black_counter);
                     ++curr_figure;
@@ -99,10 +99,10 @@ std::vector<int> AnalyzeField(std::vector<unsigned char>& image, std::pair<Field
                     ++curr_figure;
                     j = cell_size * curr_figure;
                 }
-            } else if (image[iteration_beginning.y * width + iteration_beginning.x + j] != 255) {
+            } else if (image[iteration_beginning.y * WIDTH + iteration_beginning.x + j] != 255) {
                 figures[curr_figure + i * 3] = 0;
                 ++curr_figure;
-                j += item_width;
+                j += ITEM_WIDTH;
             }
         }
         iteration_beginning.y += static_cast<int>(cell_size);
@@ -111,15 +111,20 @@ std::vector<int> AnalyzeField(std::vector<unsigned char>& image, std::pair<Field
     return figures;
 }
 
-void Encode(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height) { // проебразование в картинку
+void Encode(const char* filename, std::vector<unsigned char>& image, unsigned WIDTH, unsigned HEIGHT) { // проебразование в картинку
     //Encode the image
-    unsigned error = lodepng::encode(filename, image, width, height);
+    unsigned error = lodepng::encode(filename, image, WIDTH, HEIGHT);
 
     //if there's an error, display it
     if(error) std::cout << "encoder error " << error << ": "<< lodepng_error_text(error) << std::endl;
 }
 
-void MakeAnswer (bool line_exists, std::string& orientation, std::vector<int> winning_line) {
+
+void DrawLine(const std::string& orientation, std::vector<int>& winning_line, size_t code) { // рисуем победную линию
+}
+
+
+void MakeAnswer (bool line_exists, std::string& orientation, std::vector<int>& winning_line) {
     if (!line_exists) {   // победителя в игре пока нет
         std::cout << "There is no winner at the moment.";
     } else {
@@ -134,11 +139,7 @@ void MakeAnswer (bool line_exists, std::string& orientation, std::vector<int> wi
     }
 }
 
-//void NonDiagLines(std::string orientation, std::vector<int> winning_line) {
-//}
-
-
-void DefineWinnersLine(std::vector<int>& figures) {
+void DefineWinnersLine(const std::vector<int>& figures) {
     std::vector<int> winning_line(3, 0);
 
     for (size_t i = 0; i < 7;) {
@@ -177,8 +178,8 @@ void DefineWinnersLine(std::vector<int>& figures) {
 
 
 int main() {
-    Field_Borders border1, border2;
-    std::pair<Field_Borders, Field_Borders> borders = std::make_pair (border1, border2);
+    FieldBorders border1, border2;
+    std::pair<FieldBorders, FieldBorders> borders = std::make_pair (border1, border2);
 
     std::vector<unsigned char> image = ConvertImage(filename);   // читаем картинку
     borders = FindFieldBorders(image, borders);   //  ищем границы поля
